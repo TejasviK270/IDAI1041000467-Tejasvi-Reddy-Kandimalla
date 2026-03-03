@@ -62,7 +62,7 @@ def run_simulation(m_rocket, m_fuel, force_thrust, rate):
         
         if current_fuel > 0:
             # Acceleration = (Thrust - Weight) / Mass 
-            accel = (force_thrust - (current_total_mass * g)) / current_total_mass
+            accel = ((force_thrust * 1000) - (current_total_mass * g)) / current_total_mass
             current_fuel -= rate
         else:
             accel = -g # Falling under gravity 
