@@ -36,7 +36,7 @@ Code used to clean data
 The simulation module calculates a rocket's trajectory using Euler’s method to solve differential equations of motion.
 
 1. The Force Equation
-We apply Newton's Second Law ($F = ma$) to determine acceleration ($a$):$$a = \frac{T_{total} - (m \cdot g)}{m}$$
+We apply Newton's Second Law ($F = ma$) to determine acceleration $$a = \frac{T_{total} - (m \cdot g)}{m}$$
 
 Where:
 
@@ -60,32 +60,32 @@ As mass decreases, the Thrust-to-Weight ratio increases, causing the rocket to a
 
 The dashboard includes five mandatory visualizations, each serving a specific analytical purpose:
 
-Payload Weight vs. Fuel Consumption (Seaborn Scatter):
+**Payload Weight vs. Fuel Consumption (Seaborn Scatter):**
 
 Observation: Shows a strong positive correlation ($r \approx 0.85$).
 
 Insight: Heavier payloads require exponential increases in fuel, justifying the shift toward reusable "Heavy" launch vehicles.
 
 
-Mission Cost: Success vs. Failure (Plotly Bar):
+**Mission Cost: Success vs. Failure (Plotly Bar):**
 
 Observation: Compares the average budget of successful missions against failures.
 
 Insight: Higher budgets often correlate with higher success, but "Failed" missions still represent billions in lost investment.
 
 
-Mission Duration vs. Distance from Earth (Seaborn Line):
+**Mission Duration vs. Distance from Earth (Seaborn Line):**
 
 Observation: A linear trend that helps predict mission lifespan based on target destination (Moon vs. Mars).
 
 
-Crew Size vs. Mission Outcome (Plotly Box Plot):
+**Crew Size vs. Mission Outcome (Plotly Box Plot):**
 
 Observation: Analyzes if larger crews impact the likelihood of success.
 
 Insight: Crewed missions tend to have higher success rates due to more rigorous pre-flight safety checks.
 
 
-Scientific Yield vs. Mission Cost (Matplotlib Scatter):
+**Scientific Yield vs. Mission Cost (Matplotlib Scatter):**
 
 Observation: Measures "Value for Money" (ROI).
