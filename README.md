@@ -131,12 +131,15 @@ This dashboard is a cohesive integration of data science and physics:
 
 The Physics Engine: It calculates acceleration ($a$) based on the instantaneous sum of forces ($F_{net} = T - W$).
 
-Integration Logic:$$v_{new} = v_{old} + a \cdot \Delta t$$$$h_{new} = h_{old} + v \cdot \Delta t$$
+Integration Logic: 
+
+$$v_{new} = v_{old} + a \cdot \Delta t$$$$h_{new} = h_{old} + v \cdot \Delta t$$
+
 
 Dynamic Mass: The most critical integration detail is the Fuel Burn Loop. As the simulation runs, the rocket's mass decreases by the burn_rate every second, which realistically increases the acceleration ($a$) as the rocket climbs.
 
 
-2. Visualization LogicI integrated three distinct Python libraries to meet the project's visual requirements:
+2. Visualization Logic: I integrated three distinct Python libraries to meet the project's visual requirements:
 
 Seaborn/Matplotlib: Used for statistical distributions (Box Plots) and simple trend lines.
 
