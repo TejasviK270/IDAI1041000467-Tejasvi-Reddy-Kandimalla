@@ -40,6 +40,7 @@ st.sidebar.header("Dashboard Filters")
 year_range = st.sidebar.slider("Select Launch Year Range", 
                                int(df['Launch Date'].dt.year.min(2024)), 
                                int(df['Launch Date'].dt.year.max()), 
+                              )
                     
 
 # Filter by Mission Type (Checkboxes) 
