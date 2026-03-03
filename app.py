@@ -5,20 +5,20 @@ import matplotlib.pyplot as plt
 import plotly.express as px
 import numpy as np
 
-# Set Page Configuration
+# Set Page Configuration for a professional dashboard look
 st.set_page_config(page_title="Rocket Launch Analytics Dashboard", layout="wide")
 
 # --- STAGE 2: DATA LOADING & CLEANING ---
 @st.cache_data
 def load_and_clean():
-    # Load dataset
+    # Load your cleaned dataset (ensure this filename matches your uploaded file)
     df = pd.read_csv('cleaned_rocket_missions.csv')
     df.columns = df.columns.str.strip()
     
-    # Ensure proper date format
+    # Convert launch dates to proper date format 
     df['Launch Date'] = pd.to_datetime(df['Launch Date'], errors='coerce')
     
-    # Ensure numeric types for core columns
+    # Ensure numeric columns are in the correct number type 
     numeric_cols = [
         'Mission Cost (billion USD)', 'Payload Weight (tons)', 
         'Fuel Consumption (tons)', 'Mission Duration (years)',
@@ -34,22 +34,31 @@ df = load_and_clean()
 
 # --- SIDEBAR: INTERACTIVE CONTROLS ---
 st.sidebar.header("Dashboard Filters")
+
+# 1. Slider filter for Year 
 year_range = st.sidebar.slider("Select Launch Year Range", 
                                int(df['Launch Date'].dt.year.min()), 
                                int(df['Launch Date'].dt.year.max()), 
                                (2010, 2024))
-mission_filter = st.sidebar.multiselect("Mission Type", options=df['Mission Type'].unique(), default=df['Mission Type'].unique())
 
-# Filter data
+# 2. Checkbox filters for Mission Type 
+st.sidebar.subheader("Mission Type")
+unique_missions = df['Mission Type'].unique()
+selected_missions = []
+for mission in unique_missions:
+    if st.sidebar.checkbox(mission, value=True):
+        selected_missions.append(mission)
+
+# Filter the dataset based on sidebar inputs
 filtered_df = df[(df['Launch Date'].dt.year >= year_range[0]) & 
                  (df['Launch Date'].dt.year <= year_range[1]) &
-                 (df['Mission Type'].isin(mission_filter))]
+                 (df['Mission Type'].isin(selected_missions))]
 
 st.title("🚀 Rocket Launch Path Visualization & Analytics")
 
 # --- STAGE 3: PHYSICS SIMULATION ---
 st.header("Stage 3: Rocket Launch Physics Simulation")
-st.markdown("This simulation calculates altitude based on Thrust, Gravity, and Mass reduction.")
+st.markdown("Calculate acceleration as the difference between thrust and downward forces.")
 
 with st.expander("Adjust Simulation Parameters"):
     c1, c2 = st.columns(2)
@@ -65,19 +74,19 @@ def run_sim(m_r, m_f, t_kn, rate):
     dt = 1.0
     results = []
     v, h, curr_f = 0.0, 0.0, m_f
-    thrust_n = t_kn * 1000 # Convert kN to Newtons
+    thrust_n = t_kn * 1000 # Corrected: Convert kN to Newtons for lift-off logic
     
-    for t in range(200):
+    for t in range(200): # Runs for 200 time steps 
         total_m = m_r + curr_f
         if curr_f > 0:
             # Acceleration = (Thrust - Weight) / Mass
             accel = (thrust_n - (total_m * g)) / total_m
-            curr_f = max(0, curr_f - rate)
+            curr_f = max(0, curr_f - rate) # Reduce fuel as time passes 
         else:
-            accel = -g # Gravity takes over after fuel depletion
+            accel = -g # Engine cuts out: only gravity applies
         
-        v += accel * dt
-        h = max(0, h + v * dt)
+        v += accel * dt # Update velocity 
+        h = max(0, h + v * dt) # Update altitude 
         results.append({"Time (s)": t, "Altitude (m)": h, "Velocity (m/s)": v, "Fuel (kg)": curr_f})
     return pd.DataFrame(results)
 
@@ -87,37 +96,38 @@ st.line_chart(sim_results, x="Time (s)", y="Altitude (m)")
 # --- STAGE 4: COMPULSORY VISUALIZATIONS ---
 st.header("Stage 4: Mission Data Insights")
 
-# 1. Scatter Plot: Payload vs. Fuel
+# 1. Scatter Plot: Payload vs. Fuel 
 fig1 = px.scatter(filtered_df, x='Payload Weight (tons)', y='Fuel Consumption (tons)', 
                  color='Mission Success (%)', title="1. Payload Weight vs. Fuel Consumption")
 st.plotly_chart(fig1, use_container_width=True)
 
-# 2. Bar Chart: Cost Success vs Failure
-filtered_df['Status'] = filtered_df['Mission Success (%)'].apply(lambda x: 'Success' if x >= 80 else 'Failure')
-fig2 = px.bar(filtered_df, x='Status', y='Mission Cost (billion USD)', color='Status', 
-             title="2. Mission Cost: Success vs. Failure", barmode='group')
+# 2. Bar Chart: Cost Success vs Failure 
+# Define outcome based on 80% threshold for clear visualization
+filtered_df['Outcome'] = filtered_df['Mission Success (%)'].apply(lambda x: 'Success' if x >= 80 else 'Failure')
+fig2 = px.bar(filtered_df, x='Outcome', y='Mission Cost (billion USD)', color='Outcome', 
+             title="2. Mission Cost: Success vs. Failure")
 st.plotly_chart(fig2, use_container_width=True)
 
 col_a, col_b = st.columns(2)
 with col_a:
-    # 3. Line Chart: Duration vs Distance
+    # 3. Line Chart: Duration vs Distance 
     fig3 = px.line(filtered_df.sort_values('Distance from Earth (light-years)'), 
                   x='Distance from Earth (light-years)', y='Mission Duration (years)', 
                   title="3. Duration vs. Distance")
     st.plotly_chart(fig3)
 
 with col_b:
-    # 4. Box Plot: Crew Size vs Success %
-    fig4 = px.box(filtered_df, x='Status', y='Crew Size', title="4. Crew Size vs. Mission Outcome")
+    # 4. Box Plot: Crew Size vs Success % 
+    fig4 = px.box(filtered_df, x='Outcome', y='Crew Size', title="4. Crew Size vs. Mission Outcome")
     st.plotly_chart(fig4)
 
-# 5. Scatter/Bar: Scientific Yield vs Cost
+# 5. Scatter Chart: Scientific Yield vs Cost 
 fig5 = px.scatter(filtered_df, x='Mission Cost (billion USD)', y='Scientific Yield (points)', 
                  size='Payload Weight (tons)', color='Launch Vehicle', 
                  title="5. Scientific Yield vs. Mission Cost")
 st.plotly_chart(fig5, use_container_width=True)
 
-# Heatmap for Success Factors
+# Correlation Heatmap for Mission Success Factors 
 st.subheader("Correlation Heatmap: Factors Relating to Success")
 fig6, ax = plt.subplots()
 sns.heatmap(filtered_df.select_dtypes(include=[np.number]).corr(), annot=True, cmap='coolwarm', ax=ax)
