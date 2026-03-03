@@ -3,114 +3,122 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import plotly.express as px
-import plotly.graph_objects as go
 import numpy as np
 
-# Page Configuration
-st.set_page_config(page_title="Rocket Path & Mission Analytics", layout="wide")
+# Set Page Configuration
+st.set_page_config(page_title="Rocket Launch Analytics Dashboard", layout="wide")
 
-# --- STAGE 2 & 4: DATA LOADING ---
+# --- STAGE 2: DATA LOADING & CLEANING ---
 @st.cache_data
-def load_and_clean_data():
-    # Load your cleaned dataset
+def load_and_clean():
+    # Load dataset
     df = pd.read_csv('cleaned_rocket_missions.csv')
     df.columns = df.columns.str.strip()
-    return df
+    
+    # Ensure proper date format
+    df['Launch Date'] = pd.to_datetime(df['Launch Date'], errors='coerce')
+    
+    # Ensure numeric types for core columns
+    numeric_cols = [
+        'Mission Cost (billion USD)', 'Payload Weight (tons)', 
+        'Fuel Consumption (tons)', 'Mission Duration (years)',
+        'Distance from Earth (light-years)', 'Scientific Yield (points)',
+        'Crew Size', 'Mission Success (%)'
+    ]
+    for col in numeric_cols:
+        df[col] = pd.to_numeric(df[col], errors='coerce')
+    
+    return df.dropna(subset=['Payload Weight (tons)', 'Fuel Consumption (tons)'])
 
-df = load_and_clean_data()
+df = load_and_clean()
 
-# --- SIDEBAR FILTERS ---
+# --- SIDEBAR: INTERACTIVE CONTROLS ---
 st.sidebar.header("Dashboard Filters")
-mission_type = st.sidebar.selectbox("Select Mission Type", options=["All"] + list(df['Mission Type'].unique()))
-dist_range = st.sidebar.slider("Distance from Earth (light-years)", 
-                               int(df['Distance from Earth (light-years)'].min()), 
-                               int(df['Distance from Earth (light-years)'].max()), 
-                               (0, 500))
+year_range = st.sidebar.slider("Select Launch Year Range", 
+                               int(df['Launch Date'].dt.year.min()), 
+                               int(df['Launch Date'].dt.year.max()), 
+                               (2010, 2024))
+mission_filter = st.sidebar.multiselect("Mission Type", options=df['Mission Type'].unique(), default=df['Mission Type'].unique())
 
-# Filter data based on selection
-plot_df = df[(df['Distance from Earth (light-years)'] >= dist_range[0]) & 
-            (df['Distance from Earth (light-years)'] <= dist_range[1])]
-if mission_type != "All":
-    plot_df = plot_df[plot_df['Mission Type'] == mission_type]
+# Filter data
+filtered_df = df[(df['Launch Date'].dt.year >= year_range[0]) & 
+                 (df['Launch Date'].dt.year <= year_range[1]) &
+                 (df['Mission Type'].isin(mission_filter))]
 
-st.title("🚀 Space Rocket Path & Mission Analytics")
+st.title("🚀 Rocket Launch Path Visualization & Analytics")
 
-# --- STAGE 3: ROCKET LAUNCH SIMULATION ---
+# --- STAGE 3: PHYSICS SIMULATION ---
 st.header("Stage 3: Rocket Launch Physics Simulation")
-with st.expander("Adjust Simulation Parameters"):
-    col1, col2 = st.columns(2)
-    with col1:
-        thrust = st.slider("Engine Thrust (kN)", 1000, 5000, 3000)
-        rocket_mass = st.number_input("Initial Rocket Mass (kg)", value=50000)
-    with col2:
-        fuel_mass = st.number_input("Fuel Mass (kg)", value=30000)
-        burn_rate = st.slider("Fuel Burn Rate (kg/s)", 10, 500, 100)
+st.markdown("This simulation calculates altitude based on Thrust, Gravity, and Mass reduction.")
 
-def run_simulation(m_rocket, m_fuel, force_thrust, rate):
-    # Initial conditions
-    g = 9.8  # Gravity 
-    dt = 1.0 # Time step 
-    time_steps = 200 # 
-    
+with st.expander("Adjust Simulation Parameters"):
+    c1, c2 = st.columns(2)
+    with c1:
+        thrust_kn = st.slider("Engine Thrust (kN)", 1000, 8000, 5000)
+        rocket_m = st.number_input("Rocket Base Mass (kg)", value=50000)
+    with c2:
+        fuel_m = st.number_input("Initial Fuel Mass (kg)", value=40000)
+        burn_rate = st.slider("Fuel Burn Rate (kg/s)", 50, 500, 150)
+
+def run_sim(m_r, m_f, t_kn, rate):
+    g = 9.81
+    dt = 1.0
     results = []
-    v = 0.0  # Velocity
-    h = 0.0  # Altitude
-    current_fuel = m_fuel
+    v, h, curr_f = 0.0, 0.0, m_f
+    thrust_n = t_kn * 1000 # Convert kN to Newtons
     
-    for t in range(time_steps):
-        current_total_mass = m_rocket + current_fuel
-        
-        if current_fuel > 0:
-            # Acceleration = (Thrust - Weight) / Mass 
-            accel = ((force_thrust * 1000) - (current_total_mass * g)) / current_total_mass
-            current_fuel -= rate
+    for t in range(200):
+        total_m = m_r + curr_f
+        if curr_f > 0:
+            # Acceleration = (Thrust - Weight) / Mass
+            accel = (thrust_n - (total_m * g)) / total_m
+            curr_f = max(0, curr_f - rate)
         else:
-            accel = -g # Falling under gravity 
-            
-        v += accel * dt # Update velocity 
-        h += v * dt     # Update altitude 
+            accel = -g # Gravity takes over after fuel depletion
         
-        # Prevent rocket from going underground
-        if h < 0: h = 0; v = 0 
-            
-        results.append({"Time": t, "Altitude": h, "Velocity": v, "Fuel": max(0, current_fuel)})
+        v += accel * dt
+        h = max(0, h + v * dt)
+        results.append({"Time (s)": t, "Altitude (m)": h, "Velocity (m/s)": v, "Fuel (kg)": curr_f})
     return pd.DataFrame(results)
 
-sim_data = run_simulation(rocket_mass, fuel_mass, thrust, burn_rate)
-st.line_chart(sim_data, x="Time", y="Altitude", use_container_width=True)
+sim_results = run_sim(rocket_m, fuel_m, thrust_kn, burn_rate)
+st.line_chart(sim_results, x="Time (s)", y="Altitude (m)")
 
 # --- STAGE 4: COMPULSORY VISUALIZATIONS ---
-st.header("Stage 4: Real-World Mission Insights")
+st.header("Stage 4: Mission Data Insights")
 
-row1_col1, row1_col2 = st.columns(2)
+# 1. Scatter Plot: Payload vs. Fuel
+fig1 = px.scatter(filtered_df, x='Payload Weight (tons)', y='Fuel Consumption (tons)', 
+                 color='Mission Success (%)', title="1. Payload Weight vs. Fuel Consumption")
+st.plotly_chart(fig1, use_container_width=True)
 
-with row1_col1:
-    st.subheader("1. Payload vs. Fuel Consumption") # 
-    fig1 = px.scatter(plot_df, x='Payload Weight (tons)', y='Fuel Consumption (tons)', 
-                     color='Mission Success (%)', title="Seaborn-style Scatter")
-    st.plotly_chart(fig1)
+# 2. Bar Chart: Cost Success vs Failure
+filtered_df['Status'] = filtered_df['Mission Success (%)'].apply(lambda x: 'Success' if x >= 80 else 'Failure')
+fig2 = px.bar(filtered_df, x='Status', y='Mission Cost (billion USD)', color='Status', 
+             title="2. Mission Cost: Success vs. Failure", barmode='group')
+st.plotly_chart(fig2, use_container_width=True)
 
-with row1_col2:
-    st.subheader("2. Cost: Success vs. Failure") # 
-    plot_df['Outcome'] = plot_df['Mission Success (%)'].apply(lambda x: 'Success' if x > 50 else 'Failure')
-    fig2 = px.bar(plot_df, x='Outcome', y='Mission Cost (billion USD)', color='Outcome',
-                 title="Matplotlib/Plotly Bar Chart")
-    st.plotly_chart(fig2)
-
-row2_col1, row2_col2 = st.columns(2)
-
-with row2_col1:
-    st.subheader("3. Duration vs. Distance") # 
-    fig3 = px.line(plot_df.sort_values('Distance from Earth (light-years)'), 
-                  x='Distance from Earth (light-years)', y='Mission Duration (years)')
+col_a, col_b = st.columns(2)
+with col_a:
+    # 3. Line Chart: Duration vs Distance
+    fig3 = px.line(filtered_df.sort_values('Distance from Earth (light-years)'), 
+                  x='Distance from Earth (light-years)', y='Mission Duration (years)', 
+                  title="3. Duration vs. Distance")
     st.plotly_chart(fig3)
 
-with row2_col2:
-    st.subheader("4. Crew Size vs. Success %") # 
-    fig4 = px.box(plot_df, x='Outcome', y='Crew Size', title="Seaborn-style Boxplot")
+with col_b:
+    # 4. Box Plot: Crew Size vs Success %
+    fig4 = px.box(filtered_df, x='Status', y='Crew Size', title="4. Crew Size vs. Mission Outcome")
     st.plotly_chart(fig4)
 
-st.subheader("5. Scientific Yield vs. Mission Cost") # 
-fig5 = px.scatter(plot_df, x='Mission Cost (billion USD)', y='Scientific Yield (points)', 
-                 size='Crew Size', color='Launch Vehicle', hover_name='Mission Name')
+# 5. Scatter/Bar: Scientific Yield vs Cost
+fig5 = px.scatter(filtered_df, x='Mission Cost (billion USD)', y='Scientific Yield (points)', 
+                 size='Payload Weight (tons)', color='Launch Vehicle', 
+                 title="5. Scientific Yield vs. Mission Cost")
 st.plotly_chart(fig5, use_container_width=True)
+
+# Heatmap for Success Factors
+st.subheader("Correlation Heatmap: Factors Relating to Success")
+fig6, ax = plt.subplots()
+sns.heatmap(filtered_df.select_dtypes(include=[np.number]).corr(), annot=True, cmap='coolwarm', ax=ax)
+st.pyplot(fig6)
