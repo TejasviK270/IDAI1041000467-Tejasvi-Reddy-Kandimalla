@@ -1,5 +1,18 @@
 # IDAI1041000467-Tejasvi-Reddy-Kandimalla
 
+Unit 4- Building Streamlit Web Apps for visualizing  Space Rocket Paths and Smart Elevators pathways
+
+Tejasvi Reddy Kandimalla
+
+Candidate Registration Number- 1000467
+
+CRS Name: Artificial Intelligence
+
+Course Name - Mathematics for AI I
+
+School Name - Birla Open Minds International School, Kollur
+
+
 Live app link: https://idai1041000467-tejasvi-reddy-kandimalla-skxrx52bkhrutvq7f9jk6x.streamlit.app/
 
 
