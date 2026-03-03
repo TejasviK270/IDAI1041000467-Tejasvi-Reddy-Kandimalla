@@ -1,5 +1,7 @@
 # IDAI1041000467-Tejasvi-Reddy-Kandimalla
 
+Live app link: https://idai1041000467-tejasvi-reddy-kandimalla-skxrx52bkhrutvq7f9jk6x.streamlit.app/
+
 
 Code used to clean data
 
